@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -33,7 +34,10 @@ func main() {
 	r.PUT("/user/:id", edit)
 	r.DELETE("/user/:id", delete)
 
-	r.Run(":7777")
+	err := r.Run(":7777")
+	if err != nil {
+		log.Fatal("error:", err)
+	}
 }
 
 func login(c *gin.Context) {
@@ -41,7 +45,10 @@ func login(c *gin.Context) {
 	fmt.Println(c.Request.Header.Get("token"))
 
 	a := new(account)
-	c.BindJSON(&a)
+	err := c.BindJSON(&a)
+	if err != nil {
+		log.Fatal("error:", err)
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"id":    1,
@@ -51,7 +58,10 @@ func login(c *gin.Context) {
 
 func creator(c *gin.Context) {
 	u := new(User)
-	c.BindJSON(&u)
+	err := c.BindJSON(&u)
+	if err != nil {
+		log.Fatal("error:", err)
+	}
 
 	users = append(users, *u)
 }
