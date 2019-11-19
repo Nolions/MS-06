@@ -1,10 +1,10 @@
 package main
 
 import (
+	"MS-06/protobuf/protobuf"
 	"fmt"
 	"github.com/golang/protobuf/proto"
 	"log"
-	"protobuf/protobuf"
 )
 
 func main() {
