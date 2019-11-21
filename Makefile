@@ -58,3 +58,6 @@ run-Redis_Read:
 
 run-Redis_Remove:
 	$(GORUN) redis/main.go -c=2 -uid=${UID}
+
+run filepath_walk:
+	$(GORUN) filepath_walk/main.go -path=/Users/nolions/workspace/MS-06/scanDir_File
