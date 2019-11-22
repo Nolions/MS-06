@@ -22,9 +22,10 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	eg, egCtx := errgroup.WithContext(context.Background())
 
-	eg.Go(helloWordServer(ctx, &wg))
-	eg.Go(hellNameServer(ctx, &wg))
-	eg.Go(echoServer(ctx, &wg))
+	//eg.Go(helloWordServer(ctx, &wg))
+	eg.Go(createHttpServer("hello word", ":7000", helloWordEngine(helloWordHandler()), ctx, &wg))
+	eg.Go(createHttpServer("hello name", ":7001", helloNameEngine(helloNameHandler()), ctx, &wg))
+	eg.Go(createHttpServer("echo", ":7002", echoNameEngine(echoHandler()), ctx, &wg))
 
 	// server本身發生錯誤時終止所有服務
 	go func() {
@@ -49,116 +50,9 @@ func main() {
 	fmt.Println("=======end=======")
 }
 
-func helloWordServer(ctx context.Context, wg *sync.WaitGroup) func() error {
+func createHttpServer(name, addr string, engine *gin.Engine, ctx context.Context, wg *sync.WaitGroup, ) func() error {
 	return func() error {
-		r := gin.Default()
-
-		r.GET("/", helloWordHandler())
-
-		s := &http.Server{
-			Addr:              ":7000",
-			Handler:           r,
-			TLSConfig:         nil,
-			ReadTimeout:       5 * time.Second,
-			ReadHeaderTimeout: 5 * time.Second,
-			WriteTimeout:      5 * time.Second,
-			IdleTimeout:       0 * time.Second,
-			MaxHeaderBytes:    1 << 20,
-		}
-
-		errChan := make(chan error, 1)
-
-		go func() {
-			<-ctx.Done()
-			shutCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			defer cancel()
-			if err := s.Shutdown(shutCtx); err != nil {
-				errChan <- fmt.Errorf("error shutting down thing down the hello world servererror shutting down thing down the hello world server: %s\n", err)
-				//fmt.Printf("error shutting down the hello world server: %s\n", err)
-			}
-
-			fmt.Println("the hello world server is closed")
-			wg.Done()
-			close(errChan)
-		}()
-
-		fmt.Println("the hello world server is starting")
-
-		if err := s.ListenAndServe(); err != nil {
-			//fmt.Printf("error starting the hello world server: %s\n", err)
-			return fmt.Errorf("error starting the hello world server: %s\n", err)
-		}
-
-		fmt.Println("the hello world server is closing")
-		err := <-errChan
-		wg.Wait()
-
-		return err
-	}
-}
-
-func hellNameServer(ctx context.Context, wg *sync.WaitGroup) func() error {
-	return func() error {
-		r := gin.Default()
-		r.GET("/", helloNameHandler())
-
-		s := &http.Server{
-			Addr:              ":7001",
-			Handler:           r,
-			TLSConfig:         nil,
-			ReadTimeout:       5 * time.Second,
-			ReadHeaderTimeout: 5 * time.Second,
-			WriteTimeout:      5 * time.Second,
-			IdleTimeout:       0 * time.Second,
-			MaxHeaderBytes:    1 << 20,
-		}
-
-		errChan := make(chan error, 1)
-
-		go func() {
-			<-ctx.Done()
-			shutCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			defer cancel()
-
-			if err := s.Shutdown(shutCtx); err != nil {
-				//fmt.Printf("error shutting down the hello name server: %s\n", err)
-				errChan <- fmt.Errorf("error shutting down the hello name server: %s\n", err)
-			}
-
-			fmt.Println("the hello world server is closed")
-			close(errChan)
-			wg.Done()
-		}()
-
-		fmt.Println("the hello name server is starting")
-		if err := s.ListenAndServe(); err != nil {
-			//fmt.Printf("error starting the hello name server: %s\n", err)
-			return fmt.Errorf("error starting the hello name server: %s\n", err)
-		}
-
-		fmt.Println("the hello name server is closing")
-		err := <-errChan
-		wg.Wait()
-		return err
-	}
-}
-
-func echoServer(ctx context.Context, wg *sync.WaitGroup) func() error {
-	return func() error {
-
-		r := gin.Default()
-		r.POST("/", echoHandler())
-
-		s := &http.Server{
-			Addr:              ":7002",
-			Handler:           r,
-			TLSConfig:         nil,
-			ReadTimeout:       5 * time.Second,
-			ReadHeaderTimeout: 5 * time.Second,
-			WriteTimeout:      5 * time.Second,
-			IdleTimeout:       0 * time.Second,
-			MaxHeaderBytes:    1 << 20,
-		}
+		s := run(engine, addr)
 
 		errChan := make(chan error, 1)
 
@@ -169,25 +63,61 @@ func echoServer(ctx context.Context, wg *sync.WaitGroup) func() error {
 
 			if err := s.Shutdown(shutCxt); err != nil {
 				//fmt.Printf("error shutting down the echo server: %s\n", err)
-				errChan <- fmt.Errorf("error shutting down the echo server: %s\n", err)
+				errChan <- fmt.Errorf("error shutting down the %s server: %s\n", name, err)
 			}
 
-			fmt.Println("the echo server is closing")
+			fmt.Printf("the %s server is closing\n", name)
 			close(errChan)
 			wg.Done()
 		}()
 
-		fmt.Println("the echo server is starting")
+		fmt.Printf("the %s server is starting\n", name)
 		if err := s.ListenAndServe(); err != nil {
 			//fmt.Printf("error starting the echo server: %s\n", err)
-			return fmt.Errorf("error starting the echo server: %s\n", err)
+			return fmt.Errorf("error starting the %s server: %s\n", name, err)
 		}
 
-		fmt.Println("the echo server is closing")
+		fmt.Printf("the %s server is closing\n", name)
 		err := <-errChan
 		wg.Wait()
 		return err
 	}
+}
+
+func run(r *gin.Engine, addr string) *http.Server {
+	s := &http.Server{
+		Addr:              addr,
+		Handler:           r,
+		TLSConfig:         nil,
+		ReadTimeout:       5 * time.Second,
+		ReadHeaderTimeout: 5 * time.Second,
+		WriteTimeout:      5 * time.Second,
+		IdleTimeout:       0 * time.Second,
+		MaxHeaderBytes:    1 << 20,
+	}
+
+	return s
+}
+
+func helloWordEngine(handler func(c *gin.Context), ) *gin.Engine {
+	r := gin.Default()
+	r.GET("/", handler)
+
+	return r
+}
+
+func helloNameEngine(handler func(c *gin.Context), ) *gin.Engine {
+	r := gin.Default()
+	r.GET("/", handler)
+
+	return r
+}
+
+func echoNameEngine(handler func(c *gin.Context), ) *gin.Engine {
+	r := gin.Default()
+	r.POST("/", handler)
+
+	return r
 }
 
 func helloWordHandler() func(c *gin.Context) {
