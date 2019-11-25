@@ -11,7 +11,6 @@ require (
 	github.com/mattn/go-sqlite3 v1.13.0 // indirect
 	github.com/onsi/ginkgo v1.10.3 // indirect
 	github.com/onsi/gomega v1.7.1 // indirect
-	github.com/rivo/tview v0.0.0-20191121195645-2d957c4be01d
 	golang.org/x/crypto v0.0.0-20191117063200-497ca9f6d64f // indirect
 	golang.org/x/net v0.0.0-20191118183410-d06c31c94cae // indirect
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
