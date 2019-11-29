@@ -30,16 +30,27 @@ func signing(u *user) string {
 	return tokenString
 }
 
-func validating(jwtStr string) (bool, error) {
+func validating(jwtStr string) (bool, string) {
 	token, err := jwt.Parse(jwtStr, func(token *jwt.Token) (i interface{}, e error) {
 		return []byte("123434"), nil
 	})
 
 	if err != nil {
-		return false, err
+		if ve, ok := err.(jwt.ValidationError); ok {
+			if ve.Errors&jwt.ValidationErrorMalformed != 0 {
+				return false, "That's not even a token"
+			} else if ve.Errors&(jwt.ValidationErrorExpired|jwt.ValidationErrorNotValidYet) != 0 {
+				return false, "Timing is everything"
+			} else {
+				return false, "Couldn't handle this token"
+			}
+
+		} else {
+			return false, "Couldn't handle this token"
+		}
 	}
 
 	claims := token.Claims.(jwt.MapClaims)
 	fmt.Println(claims)
-	return true, nil
+	return true, ""
 }
