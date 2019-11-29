@@ -20,6 +20,7 @@ require (
 	golang.org/x/tools v0.0.0-20191118222007-07fc4c7f2b98
 	golang.org/x/xerrors v0.0.0-20191011141410-1b5146add898 // indirect
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
+	gopkg.in/dgrijalva/jwt-go.v3 v3.2.0
 	gopkg.in/go-playground/assert.v1 v1.2.1
 	gopkg.in/yaml.v2 v2.2.5 // indirect
 )
