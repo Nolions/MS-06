@@ -1,7 +1,6 @@
 package jwt
 
 import (
-	"fmt"
 	"gopkg.in/dgrijalva/jwt-go.v3"
 	"log"
 	"time"
@@ -18,10 +17,10 @@ func signing(u *user) string {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"id":      u.id,
 		"account": u.account,
-		"exp":     time.Now().Unix(),
+		"exp":     time.Now().Add(time.Hour).Unix(),
 	})
 
-	tokenString, err := token.SignedString([]byte("123434"))
+	tokenString, err := token.SignedString([]byte("12134"))
 
 	if err != nil {
 		log.Fatal(nil)
@@ -30,27 +29,39 @@ func signing(u *user) string {
 	return tokenString
 }
 
-func validating(jwtStr string) (bool, string) {
+func validating(jwtStr string) (jwt.MapClaims, Errs) {
 	token, err := jwt.Parse(jwtStr, func(token *jwt.Token) (i interface{}, e error) {
-		return []byte("123434"), nil
+		return []byte("12134"), nil
 	})
 
 	if err != nil {
-		if ve, ok := err.(jwt.ValidationError); ok {
-			if ve.Errors&jwt.ValidationErrorMalformed != 0 {
-				return false, "That's not even a token"
-			} else if ve.Errors&(jwt.ValidationErrorExpired|jwt.ValidationErrorNotValidYet) != 0 {
-				return false, "Timing is everything"
-			} else {
-				return false, "Couldn't handle this token"
+		if token == nil {
+			return nil, Errs{
+				Message: "Token Format error",
+				Code:    103,
 			}
-
 		} else {
-			return false, "Couldn't handle this token"
+			if !token.Valid {
+				ve, ok := err.(*jwt.ValidationError)
+				if ok && ve.Errors&jwt.ValidationErrorExpired != 0 {
+
+					return nil, Errs{
+						Message: "Token Expired",
+						Code:    101,
+					}
+				}
+				return nil, Errs{
+					Message: "Token Invalid",
+					Code:    102,
+				}
+			}
 		}
 	}
 
-	claims := token.Claims.(jwt.MapClaims)
-	fmt.Println(claims)
-	return true, ""
+	return token.Claims.(jwt.MapClaims), Errs{}
+}
+
+type Errs struct {
+	Message string `json:"message"`
+	Code    int    `json:"code"`
 }
