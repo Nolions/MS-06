@@ -1,3 +1,3 @@
-# MS-06
+# ZakuⅡ
 
 go lang 相關練習
